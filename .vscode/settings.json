@@ -1,0 +1,5 @@
+{
+  "solidity-va.deco.argumentsSuffix": "",
+  "solidity-va.deco.statevars": false,
+  "solidity-va.deco.argumentsMode": "symbol only"
+}
