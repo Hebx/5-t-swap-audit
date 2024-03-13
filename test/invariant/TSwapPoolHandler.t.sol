@@ -35,7 +35,8 @@ contract TSwapPoolHandler is Test {
     }
 
     function swapPoolTokensBasedOnOutputWeth(uint256 outputWeth) public {
-        outputWeth = bound(outputWeth, 0, type(uint64).max);
+        uint256 minWethAmount = pool.getMinimumWethDepositAmount();
+        outputWeth = bound(outputWeth, minWethAmount, weth.balanceOf(address(pool)));
         if (outputWeth >= weth.balanceOf(address(pool))) {
             return;
         }
@@ -47,10 +48,10 @@ contract TSwapPoolHandler is Test {
         if (poolTokenAmount >= type(uint64).max) {
             return;
         }
-        startingY = int256(weth.balanceOf(address(this)));
-        startingX = int256(poolToken.balanceOf(address(this)));
-        expectedDeltaX = int256(pool.getPoolTokensToDepositBasedOnWeth(poolTokenAmount));
-        expectedDeltaY = int256(outputWeth);
+        startingY = int256(weth.balanceOf(address(pool)));
+        startingX = int256(poolToken.balanceOf(address(pool)));
+        expectedDeltaX = int256(poolTokenAmount);
+        expectedDeltaY = int256(outputWeth) * int256(-1); // we are removing weth from the pool
 
         if (poolToken.balanceOf(address(user)) < poolTokenAmount) {
             poolToken.mint(user, poolTokenAmount - poolToken.balanceOf(address(user)) + 1); // ????
@@ -60,16 +61,16 @@ contract TSwapPoolHandler is Test {
         pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
         vm.stopPrank();
         // Actual Invariants
-        endingX = int256(poolToken.balanceOf(address(this)));
-        endingY = int256(weth.balanceOf(address(this)));
+        endingX = int256(poolToken.balanceOf(address(pool)));
+        endingY = int256(weth.balanceOf(address(pool)));
 
         actualDeltaY = endingY - startingY;
         actualDeltaX = endingX - startingX;
     }
 
     function deposit(uint256 wethAmountToDeposit) public {
-        startingY = int256(weth.balanceOf(address(this)));
-        startingX = int256(poolToken.balanceOf(address(this)));
+        startingY = int256(weth.balanceOf(address(pool)));
+        startingX = int256(poolToken.balanceOf(address(pool)));
         wethAmountToDeposit = bound(wethAmountToDeposit, pool.getMinimumWethDepositAmount(), type(uint64).max);
         uint256 poolTokensAmountToDepositBasedOnWeth = pool.getPoolTokensToDepositBasedOnWeth(wethAmountToDeposit);
         expectedDeltaX = int256(poolTokensAmountToDepositBasedOnWeth);
@@ -85,8 +86,8 @@ contract TSwapPoolHandler is Test {
         vm.stopPrank();
 
         // Actual Invariants
-        endingX = int256(poolToken.balanceOf(address(this)));
-        endingY = int256(weth.balanceOf(address(this)));
+        endingX = int256(poolToken.balanceOf(address(pool)));
+        endingY = int256(weth.balanceOf(address(pool)));
 
         actualDeltaY = endingY - startingY;
         actualDeltaX = endingX - startingX;
